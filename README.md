@@ -1,64 +1,77 @@
 # VentureSetu
 
-Founder–investor matchmaking platform (Smart India Hackathon build) — React 19 +
-TypeScript + Vite on a **real Firebase backend (Spark, free forever)**.
+**AI-Driven Scheme Matching for Marginalized Entrepreneurs** — a Smart India Hackathon
+prototype. React 19 + TypeScript + Vite + Tailwind CSS 4.
 
-**The data layer is real.** Authentication is Firebase Auth (verification
-emails, password resets, persistent sessions). Every dashboard, match,
-connection, private message, community channel, notification, tracker entry
-and pitch deck lives in Firestore / Storage behind production Security Rules.
-There is **no seed data, no demo fallback, no localStorage business data** —
-the database starts empty and fills only through real signups and actions.
+VentureSetu is a **decision-support tool**: it helps first-generation and marginalized
+entrepreneurs figure out *which Indian enterprise-support scheme categories their venture
+profile may fit*, what the repayment could look like, and *which institutions typically
+handle these files* — before they spend days travelling to offices.
 
-## Quickstart (dev)
+> **It is not a lender, not a government portal, and not an application channel.**
+> It never claims an approval, guarantee or sanction. Every result carries a
+> verify-first instruction pointing to the scheme's official portal.
 
-```bash
-cp .env.example .env        # paste your Firebase web-app config
-npm install
-npm run dev                 # http://localhost:5173
+## User journey
+
+```
+Applicant profile  →  Eligibility recommender  →  Matched scheme + explanation
+       →  Repayment calculator  →  Authorized partner locator  →  Final recommendation
 ```
 
-## Going live (one-time, ≈ 15 min)
+A persistent stepper tracks the six steps; progress and profile answers are saved in
+`localStorage` only.
 
-1. Create a Firebase project (Spark) and a web app — see **§3** of
-   [`docs/FIREBASE.md`](docs/FIREBASE.md) for exact console steps (Auth
-   email/password, Firestore production mode, Storage, admin account).
-2. Deploy rules + indexes, optionally import editorial content, then build
-   and deploy hosting:
+## Navigation
 
-```bash
-firebase login
-firebase deploy --only firestore:rules,firestore:indexes,storage
-npm run seed:content -- --project <project-id> --key <service-account>.json   # optional content
-npm run build && firebase deploy --only hosting
-```
-
-## Security rules test suite
-
-Run the rules **before** deploying against any real project (local emulators, no credentials):
-
-```bash
-npm run test:rules   # compiles firestore.rules + storage.rules and executes 125 access-matrix assertions
-```
-
-## Repository map
-
-| Path | Purpose |
+| Page | Purpose |
 |---|---|
-| `src/lib/firebase.ts` | Env bootstrap (strict `VITE_FIREBASE_*` validation) |
-| `src/lib/store.tsx` | The whole data layer — Firebase Auth actions + typed `onSnapshot` projections |
-| `src/lib/types.ts` | Firestore schema types (1:1 with collections) |
-| `src/lib/match.ts` | Real match scoring over live docs |
-| `firestore.rules` / `storage.rules` / `firestore.indexes.json` | Server-side security + indexes |
-| `scripts/seed-content.mjs` + `content-seed.json` | Optional editorial content import (never user data) |
-| `docs/FIREBASE.md` | Schema, rules, console setup, deploy, audit |
-| `docs/DEMO.md` | Scripted two-account live demo (matching, messaging, deck share/revoke) |
+| **Dashboard** (`/`) | Explains the tool, tracks the journey, carries the honesty banner |
+| **Eligibility** (`/eligibility`) | Applicant profile + explainable, rule-based scheme matching |
+| **Repayment** (`/repayment`) | Reducing-balance EMI, moratorium, fee, subsidy, affordability check |
+| **Partner Locator** (`/partners`) | Institution types (PSBs, RSETIs, DICs, NEDFi…) with verify-first guidance |
+| **About / Sources** (`/about`) | What the tool is / is not, methodology, official portals, privacy |
+| **Final recommendation** (`/recommendation`) | Journey recap + ordered next actions + print-to-PDF |
 
-## Docs
+## How the matching works (transparent by design)
 
-- **[docs/FIREBASE.md](docs/FIREBASE.md)** — schema design, security-rules
-  matrix, exact Firebase console steps, deploy commands and the
-  residual-trade-offs audit.
-- **[docs/DEMO.md](docs/DEMO.md)** — the scripted two-account live demo for
-  judges: signup/verify, matching, real-time messaging and revocable deck
-  sharing, with per-step verification and failure fallbacks.
+Each of the 12 catalogued scheme categories contributes a small set of **criteria**
+derived from its publicly described focus. Each criterion resolves to
+`meets / partial / unmet / note`; the score is the share of assessable criteria
+satisfied (partial = ½, notes excluded). **Hard requirements block a scheme outright**
+— e.g. a non-SC/ST/non-woman applicant is never shown Stand-Up India; a non-food
+business is never shown PMFME. There is no hidden ML score — every line can be
+checked against the official guidelines, which is exactly what the user is asked to do.
+
+## Honest-by-construction
+
+- No approval, sanction, "guaranteed loan" or approval-probability language anywhere.
+- Amounts are labelled "commonly quoted" and every scheme card links the official portal
+  (mudra.org.in, kviconline.gov.in, standupmitra.in, cgtmse.in, pmfme.mofpi.gov.in, …).
+- Anti-fraud guidance is built in (no agent fees, decisions come only in writing from lenders).
+- No logins, no uploads, no backend — all computation and storage are browser-local.
+
+## Quickstart
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # typecheck + production build
+npm run lint       # eslint (clean)
+```
+
+## Project structure
+
+```
+src/
+  components/    ui.tsx (primitives) · charts.tsx (SVG donut/bars) · layout.tsx (shell)
+  lib/           types.ts · schemes.ts (catalogue) · eligibility.ts (rules engine)
+                 repayment.ts (amortisation) · partners.ts · profileStore.tsx · format.ts
+  pages/         Dashboard · Eligibility · Repayment · Partners · Recommendation · About
+```
+
+## Production roadmap (for the pitch)
+
+Guideline-sync from official feeds with dated provenance per criterion · multilingual UI
+starting with Hindi/Odia/Tamil · offline-first delivery for low-connectivity districts ·
+DIC/RSETI pilot partnerships for feedback loops.

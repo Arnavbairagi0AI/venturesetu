@@ -1,166 +1,185 @@
-export type Role = 'founder' | 'investor' | 'admin';
-export type Lang = 'en' | 'hi' | 'ta';
+/* ============================================================
+   VentureSetu domain types — frontend prototype only.
+   All matching runs on local mock data. No backend, no AI API,
+   no database. Results are indicative, never approvals.
+   ============================================================ */
 
-export interface User {
+/* ---------------- applicant profile ---------------- */
+
+export type ApplicantCategory = 'general' | 'obc' | 'sc' | 'st' | 'minority' | 'prefer-not-to-say';
+export type IncomeBand = 'below-3l' | '3-6l' | '6-10l' | 'above-10l' | 'prefer-not-to-say';
+export type EducationLevel =
+  | 'below-secondary'
+  | 'secondary'
+  | 'senior-secondary'
+  | 'graduate'
+  | 'postgraduate'
+  | 'professional';
+
+/** The seven spec'd profile fields — kept deliberately small. */
+export interface Profile {
+  applicantCategory: ApplicantCategory;
+  annualFamilyIncomeBand: IncomeBand;
+  education: EducationLevel | '';
+  projectType: string; // sector id from data/schemes.ts
+  projectCostL: number;
+  requiredLoanL: number;
+  location: string; // state name from STATES
+  /** Loan amount actually modelled in the repayment calculator (₹L); null until set. */
+  modelledLoanL: number | null;
+}
+
+export const EMPTY_PROFILE: Profile = {
+  applicantCategory: 'prefer-not-to-say',
+  annualFamilyIncomeBand: 'prefer-not-to-say',
+  education: '',
+  projectType: '',
+  projectCostL: 0,
+  requiredLoanL: 0,
+  location: '',
+  modelledLoanL: null,
+};
+
+export const APPLICANT_CATEGORIES: { value: ApplicantCategory; label: string }[] = [
+  { value: 'general', label: 'General' },
+  { value: 'obc', label: 'OBC' },
+  { value: 'sc', label: 'SC' },
+  { value: 'st', label: 'ST' },
+  { value: 'minority', label: 'Minority' },
+  { value: 'prefer-not-to-say', label: 'Prefer not to say' },
+];
+
+export const INCOME_BANDS: { value: IncomeBand; label: string }[] = [
+  { value: 'below-3l', label: 'Below ₹3 lakh' },
+  { value: '3-6l', label: '₹3 – 6 lakh' },
+  { value: '6-10l', label: '₹6 – 10 lakh' },
+  { value: 'above-10l', label: 'Above ₹10 lakh' },
+  { value: 'prefer-not-to-say', label: 'Prefer not to say' },
+];
+
+export const EDUCATION_LEVELS: { value: EducationLevel; label: string }[] = [
+  { value: 'below-secondary', label: 'Below secondary' },
+  { value: 'secondary', label: 'Secondary (10th)' },
+  { value: 'senior-secondary', label: 'Senior secondary (12th)' },
+  { value: 'graduate', label: 'Graduate' },
+  { value: 'postgraduate', label: 'Post-graduate' },
+  { value: 'professional', label: 'Professional / technical degree' },
+];
+
+export const PROJECT_TYPES: { id: string; label: string }[] = [
+  { id: 'manufacturing', label: 'Small-scale manufacturing' },
+  { id: 'food-processing', label: 'Food processing / packaging' },
+  { id: 'textiles-handicrafts', label: 'Textiles, handloom & handicrafts' },
+  { id: 'agri-allied', label: 'Agriculture & allied (dairy, poultry)' },
+  { id: 'retail-trading', label: 'Retail / trading' },
+  { id: 'services-personal', label: 'Personal services (salon, repair, tailoring)' },
+  { id: 'it-services', label: 'IT / digital services' },
+  { id: 'transport-logistics', label: 'Transport & logistics' },
+];
+
+export const STATES: string[] = [
+  'Andhra Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Delhi NCR', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jammu & Kashmir', 'Jharkhand', 'Karnataka', 'Kerala',
+  'Madhya Pradesh', 'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Arunachal Pradesh', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Tripura', 'Other',
+];
+
+/** Income band → indicative annual income midpoint (₹), used by the rule engine. */
+export const INCOME_MIDPOINT_INR: Record<IncomeBand, number> = {
+  'below-3l': 200000,
+  '3-6l': 450000,
+  '6-10l': 800000,
+  'above-10l': 1200000,
+  'prefer-not-to-say': 0,
+};
+
+/* ---------------- schemes (mock catalogue) ---------------- */
+
+export type SchemeCategory = 'Credit' | 'Credit + subsidy' | 'Skill & training' | 'Enterprise & market support';
+
+export interface SchemeTerms {
+  loanRangeL: [number, number];
+  interestRatePct: number;
+  tenureMonths: number;
+  moratoriumMonths: number;
+}
+
+/** A single checkable requirement inside a scheme's eligibility spec. */
+export interface SchemeRequirement {
   id: string;
-  name: string;
-  email: string;
-  role: Role;
-  /** Mirrors Firebase Auth emailVerified; refreshed on sign-in/verification. */
-  verified: boolean;
-  /** TOTP MFA intent. Real enrollment requires the (free-tier-optional) Identity Platform upgrade; see docs/FIREBASE.md. */
-  mfa: boolean;
-  status: 'active' | 'suspended';
-  phone?: string;
-  company?: string;
-  title?: string;
-  location?: string;
-  hue: number;
-  createdAt: number;
-  onboarded: boolean;
-  /** Investor profile doc id — equals the user's uid in the real data layer. */
-  investorProfileId?: string;
-  focusStartupId?: string;
-}
-
-export interface Deck {
-  name: string;
-  /** Real size in KB from the uploaded file. */
-  sizeKB: number;
-  updatedAt: number;
-  /** Investor profile ids (== their user uid) with preview access. */
-  sharedWith: string[];
-  /** Firebase Storage object path, e.g. decks/<startupId>/<file>. */
-  path: string;
-}
-
-export interface Traction { label: string; value: string; delta?: string }
-
-export interface Milestone {
-  id: string; label: string; detail: string; amountL?: number;
-  date: string; status: 'done' | 'active' | 'upcoming'; progress: number;
-}
-
-export interface FounderInfo {
-  name: string; title: string; bio: string;
-  qualifications: string[]; experience: string[];
-}
-
-export interface Startup {
-  id: string; ownerId: string; /** ms epoch — the listings query orders by this. */
-  createdAt: number; name: string; tagline: string;
-  sector: string; stage: string; location: string; founded: number; team: number;
-  pitch: string; problem: string; solution: string; market: string; model: string;
-  founder: FounderInfo;
-  askL: number; equityPct: number; raisedL: number;
-  cashL: number; burnL: number; revenueL: number; prevRevenueL: number;
-  revSeries: number[]; burnSeries: number[]; months: string[];
-  cac?: number; ltv?: number; growthPct: number;
-  traction: Traction[]; highlights: string[]; tags: string[];
-  milestones: Milestone[];
-  deck?: Deck;
-  readiness: number; hue: number;
-}
-
-export interface Investor {
-  id: string; userId?: string; name: string; firm: string; title: string;
-  email: string; phone: string; location: string; hue: number;
-  bio: string; thesis: string;
-  sectors: string[]; stages: string[]; geos: string[];
-  chequeMinL: number; chequeMaxL: number;
-  qualifications: string[]; collaborations: string[];
-  portfolio: { name: string; sector: string }[];
-  deals: number; aumCr: number; response: number; medCloseDays: number;
-  verified: boolean; active: boolean;
-}
-
-export interface Match {
-  id: string; score: number;
-  sector: number; stage: number; cheque: number; geo: number;
-  reasons: string[]; signal: string;
-}
-
-export type OppStage = 'intro' | 'diligence' | 'term-sheet' | 'funded';
-
-export interface Connection {
-  id: string; startupId: string; investorId: string; fromRole: Role;
-  message: string; status: 'pending' | 'accepted' | 'declined';
-  createdAt: number; stage: OppStage;
-}
-
-export interface MsgFile {
-  name: string;
-  sizeKB: number;
-  /** Firebase Storage object path, e.g. files/threads/<threadId>/<msgId>/<name>. */
-  path: string;
-}
-
-export interface Msg {
-  id: string; senderId: string; ts: number;
-  text?: string; file?: MsgFile;
-  reactions: Record<string, number>;
-}
-
-export interface Party { userId: string; name: string; org: string; hue: number; online: boolean }
-
-export interface Thread {
-  id: string; connId: string;
-  pair: [Party, Party];
-  typing: boolean; deckShared: boolean; msgs: Msg[];
-}
-
-export interface ChannelMsg {
-  id: string; author: string; hue: number; roleTag: string; ts: number;
-  text: string; reactions: Record<string, number>; reply?: string;
-  /** Author uid — used by the client to compute per-channel unread. */
-  authorId?: string;
-}
-
-export interface Channel {
-  id: string; kind: 'text' | 'voice'; name: string; desc: string;
-  msgs?: ChannelMsg[];
-  voiceMembers?: { name: string; hue: number; speaking?: boolean }[];
-  unread?: number;
-  threads?: { title: string; count: number }[];
-}
-
-export interface Notice {
-  id: string; type: 'match' | 'connect' | 'message' | 'milestone' | 'system' | 'security';
-  title: string; body: string; ts: number; read: boolean; link: string;
-}
-
-export interface VEvent {
-  id: string; title: string; kind: string; date: string; time: string;
-  where: string; host: string; seats: number; left: number;
-  desc: string; tags: string[]; featured?: boolean;
-  /** Live counters maintained from the events doc (clients increment on RSVP). */
-  rsvpCount?: number;
-  mine?: boolean;
-}
-
-export interface MarketProgram {
-  id: string; title: string; org: string; kind: string;
-  desc: string; points: string[]; hue: number; tags: string[];
-}
-
-export interface Track {
-  id: string; title: string; level: string; mins: number; lessons: number;
-  done: number; desc: string; author: string; hue: number; tags: string[];
+  label: string;
+  /** Optional hard ceiling on annual family income (₹). */
+  maxIncomeInr?: number;
+  /** Project types that satisfy this requirement. */
+  projectTypes?: string[];
+  /** Project cost window (₹ lakh). */
+  projectCostL?: { min: number; max: number };
+  /** Applicant categories that satisfy this requirement. */
+  categories?: ApplicantCategory[];
+  /** Education levels that satisfy this requirement. */
+  education?: EducationLevel[];
 }
 
 export interface Scheme {
-  id: string; name: string; by: string; benefit: string; elig: string[];
-  sector: string[]; stage: string; deadline: string; hue: number;
+  id: string;
+  name: string;
+  category: SchemeCategory;
+  officialSource: string;
+  terms: SchemeTerms;
+  requirements: SchemeRequirement[];
 }
 
-export interface News {
-  id: string; title: string; src: string; ts: number; tag: string;
-  desc: string; mins: number; featured?: boolean;
+/* ---------------- eligibility results ---------------- */
+
+export type CriterionStatus = 'meets' | 'partial' | 'unmet';
+
+export interface Criterion {
+  id: string;
+  label: string;
+  status: CriterionStatus;
+  /** Human explanation of what matched or what is missing. */
+  detail: string;
+  /** Hard requirement: an unmet status makes the whole scheme not eligible. */
+  hard: boolean;
 }
 
-export interface Faq { q: string; a: string; cat: string }
+export type EligibilityStatus = 'eligible' | 'partially-eligible' | 'not-eligible';
 
-export interface Audit { id: string; ts: number; actor: string; action: string; target: string; ip: string }
-export interface Flag { id: string; content: string; author: string; reason: string; ts: number; status: 'open' | 'resolved' }
+export interface SchemeMatch {
+  scheme: Scheme;
+  status: EligibilityStatus;
+  /** 0–100 share of requirements satisfied (partial counts half). */
+  score: number;
+  criteria: Criterion[];
+}
 
-export interface Session { token: string; userId: string; mfaPassed: boolean; expires: number }
+/* ---------------- partners ---------------- */
+
+export type PartnerType =
+  | 'Public sector bank'
+  | 'Private bank'
+  | 'NBFC'
+  | 'Training institute (RSETI)'
+  | 'Handholding agency'
+  | 'Regional office';
+
+export interface Partner {
+  id: string;
+  name: string;
+  type: PartnerType;
+  /** Scheme ids this partner is authorised to process. */
+  authorizedSchemeIds: string[];
+  /** Station / branch location. */
+  location: string;
+  /** Mock straight-line distance in km from the applicant's district HQ. */
+  distanceKm: number;
+  contact: string;
+  authorization: 'authorized' | 'empanelled' | 'referral';
+  /** Prototype capacity indicator — explicitly NOT live data. */
+  capacityPct: number;
+}
+
+/* ---------------- journey ---------------- */
+
+export type StepId = 'profile' | 'eligibility' | 'repayment' | 'partner';
